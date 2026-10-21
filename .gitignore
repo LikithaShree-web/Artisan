@@ -3,6 +3,7 @@
 **/.vite/
 **/.env*
 !**/.env.example
+!**/.env.staging.example
 **/__pycache__/
 **/*.py[cod]
 **/.venv/

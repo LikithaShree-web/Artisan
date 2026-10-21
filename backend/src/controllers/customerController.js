@@ -1,27 +1,29 @@
-const customerService=require('../services/customerService');
- 
-const registerCustomer=async(req,res)=>{
-    const name=req.body.name;
-    const email=req.body.email;
-    const phone=req.body.phone;
-    const password=req.body.password;
-    const customer = await customerService.registerCustomer(name,email,phone,password);
-    res.send(customer);
+﻿const customerService = require('../services/customerService');
+
+const registerCustomer = async (req, res) => {
+    try {
+        const customer = await customerService.registerCustomer(req.body.name, req.body.email, req.body.phone, req.body.password);
+        return res.status(201).json(customer);
+    } catch (error) {
+        return res.status(400).json({ message: error.message });
+    }
 };
 
-const loginCustomer=async(req,res)=>{
-    const email=req.body.email;
-    const password=req.body.password;
-   const customer=  await customerService.loginCustomer(email,password);
-    res.send(customer);
-}
+const loginCustomer = async (req, res) => {
+    try {
+        const customer = await customerService.loginCustomer(req.body.email, req.body.password);
+        return res.status(200).json(customer);
+    } catch (error) {
+        return res.status(401).json({ message: error.message });
+    }
+};
 
-const checkCustomer=(req,res)=>{
-    const customerId=req.customerId;
-    res.send(customerId);
-}
+const checkCustomer = (req, res) => {
+    return res.status(200).json({ customerId: req.customerId });
+};
 
-module.exports={registerCustomer,
+module.exports = {
+    registerCustomer,
     loginCustomer,
     checkCustomer
 };

@@ -9,7 +9,7 @@ try{
  res.status(200).send(cart);
 }
 catch(error){
-res.status(500).send({ error: error.message });
+res.status(error.statusCode || (error.name === 'CastError' ? 400 : 500)).send({ error: error.message });
 }
 };
 
@@ -26,7 +26,7 @@ const getMyCart=async(req,res)=>{
 
     }
     catch(error){
-        res.status(500).send({ error: error.message     });
+        res.status(error.statusCode || (error.name === 'CastError' ? 400 : 500)).send({ error: error.message });
     }
 };
 
@@ -39,7 +39,7 @@ const updateCartQuantity=async(req,res)=>{
         res.status(200).send(cart);
     }
     catch(error){
-        res.status(500).send({ error: error.message });
+        res.status(error.statusCode || (error.name === 'CastError' ? 400 : 500)).send({ error: error.message });
     }
 };
 
@@ -51,7 +51,7 @@ const removeFromCart=async(req,res)=>{
         res.status(200).send(cart);
     }
     catch(error){
-        res.status(500).send({ error: error.message });
+        res.status(error.statusCode || (error.name === 'CastError' ? 400 : 500)).send({ error: error.message });
     }
 };  
 

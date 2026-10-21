@@ -15,6 +15,8 @@ pip install -r requirements.txt
 uvicorn app.main:app --reload --host 127.0.0.1 --port 8000
 ```
 
+The service loads `ai-service/.env` at startup. The host and port are set by the Uvicorn command above; the other values in `.env.example` configure model selection, upload limits, model artifacts, and allowed browser origins. Environment variables already set in the shell take precedence over `.env`.
+
 The first category prediction downloads `openai/clip-vit-base-patch32` from Hugging Face and caches it locally. Set `AI_MODEL_ID` to a reviewed local directory or approved model repository when offline. The first request returns an explicit `503` if weights are unavailable. Keep `.models/`, `.env`, and model caches out of source control.
 
 ## Endpoints

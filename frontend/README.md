@@ -17,16 +17,20 @@ React + Vite frontend for the existing Express/MongoDB marketplace. The frontend
 
 ## Existing API integration
 
-The UI uses `/api/products` and `/api/products/:id`; customer auth at `/api/customers/register` and `/api/customers/login`; artisan auth at `/api/auth/register`, `/api/auth/login`, and `/api/auth/check`; customer cart operations at `/api/cart/add`, `/api/cart/mycart`, `/api/cart/update-quantity`, and `/api/cart/remove-item`; customer checkout/history at `/api/orders/checkout`, `/api/orders/myorders`; and artisan order operations at `/api/orders/artisan` and `/api/orders/artisan/:orderId/items/:itemId/status`.
+The UI uses `/api/products`, `/api/products/:id`, and the authenticated artisan catalogue `/api/products/mine`; customer auth at `/api/customers/register` and `/api/customers/login`; artisan auth at `/api/auth/register`, `/api/auth/login`, and `/api/auth/check`; customer cart operations at `/api/cart/add`, `/api/cart/mycart`, `/api/cart/update-quantity`, and `/api/cart/remove-item`; customer checkout/history at `/api/orders/checkout` and `/api/orders/myorders`; artisan order operations at `/api/orders/artisan` and `/api/orders/artisan/:orderId/items/:itemId/status`; admin operations at `/api/admin/login`, `/api/admin/dashboard`, and `/api/admin/products`; and reviews at `/api/reviews/product/:productId`.
+
+Customers can read product reviews and submit a rating and optional comment from a delivered order. The backend verifies that the customer purchased and received the product and prevents duplicate reviews for the same order.
+
+The marketplace's top-rated sort uses a Bayesian average with a five-review prior and the actual average rating across rated, available products. Products without reviews are displayed as unrated and sort after rated products.
 
 The backend returns login tokens as plain strings. The frontend keeps the selected role and token in `sessionStorage`, sends tokens using `Authorization: Bearer ...`, and reports API errors instead of substituting sample records.
 
-## Current backend gaps
+## Current scope
 
-- Reviews and customer recommendation data are not represented by a route or model.
-- The backend writes uploaded images into `backend/uploads/` but does not expose that folder as static content, so the UI uses its designed fallback artwork when an image URL cannot load.
+- Product photos are served from `backend/uploads/`; the UI keeps fallback artwork for products whose referenced image is missing.
+- Product uploads accept JPEG, PNG, and WebP images up to 5 MB and verify file signatures before saving.
+- Product edits submitted through the artisan API return the listing to pending review.
+- Artisan product editing and deletion are not exposed in the current UI.
 - The separate `ai-service/` provides pretrained CLIP zero-shot category suggestions, an explainable cost-plus price baseline, and a real-order demand baseline that requires 28 consecutive days. It does not access MongoDB; demand input is derived in the browser from the authenticated artisan's existing order endpoint. The model is not fine-tuned and no marketplace data is used to train it.
-- Artisan product editing and deletion are intentionally not exposed. Although those backend routes require an artisan token, their service methods do not scope modifications to the authenticated artisan, so calling them from the UI could permit cross-artisan changes.
-- Registration and some CRUD endpoints return plain text or raw documents and don't consistently use structured validation/error responses. The frontend handles the current responses but those contracts should be improved in a later, explicitly approved backend change.
 
 No real ratings, purchases, maker identities, product trends, or AI outputs are fabricated.

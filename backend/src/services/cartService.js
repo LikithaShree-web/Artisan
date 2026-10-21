@@ -2,20 +2,26 @@
 const Cart = require('../models/Cart');
 const Product = require('../models/Product');
 
+const fail = (message, statusCode = 400) => {
+    const error = new Error(message);
+    error.statusCode = statusCode;
+    throw error;
+};
+
 // 1. Add a product to the cart
 const addToCart = async (customerId, productId, quantity) => {
     if (!Number.isInteger(quantity) || quantity <= 0) {
-        throw new Error('Quantity must be a positive integer');
+        fail('Quantity must be a positive integer');
     }
 
     const product = await Product.findById(productId);
 
     if (!product) {
-        throw new Error('Product not found');
+        fail('Product not found', 404);
     }
 
     if (product.status !== 'available') {
-        throw new Error('Product is not available');
+        fail('Product is not available', 409);
     }
 
     const cart = await Cart.findOne({ customer: customerId });
@@ -29,7 +35,7 @@ const addToCart = async (customerId, productId, quantity) => {
         : quantity;
 
     if (totalQuantity > product.stock) {
-        throw new Error('Requested quantity exceeds available stock');
+        fail('Requested quantity exceeds available stock', 409);
     }
 
     if (!cart) {
@@ -52,7 +58,10 @@ const addToCart = async (customerId, productId, quantity) => {
 // 2. Get the customer's cart
 const getMyCart = async (customerId) => {
     return Cart.findOne({ customer: customerId })
-        .populate('products.product')
+        .populate({
+            path: 'products.product',
+            select: '-productionCost -reviewFeedback -__v'
+        })
         .exec();
 };
 
@@ -65,7 +74,7 @@ const updateCartQuantity = async (customerId, productId, quantity) => {
     const cart = await Cart.findOne({ customer: customerId });
 
     if (!cart) {
-        throw new Error('Cart not found');
+        fail('Cart not found', 404);
     }
 
     const productIndex = cart.products.findIndex(
@@ -73,21 +82,21 @@ const updateCartQuantity = async (customerId, productId, quantity) => {
     );
 
     if (productIndex === -1) {
-        throw new Error('Product not found in cart');
+        fail('Product not found in cart', 404);
     }
 
     const product = await Product.findById(productId);
 
     if (!product) {
-        throw new Error('Product not found');
+        fail('Product not found', 404);
     }
 
     if (product.status !== 'available') {
-        throw new Error('Product is not available');
+        fail('Product is not available', 409);
     }
 
     if (quantity > product.stock) {
-        throw new Error('Requested quantity exceeds available stock');
+        fail('Requested quantity exceeds available stock', 409);
     }
 
     cart.products[productIndex].quantity = quantity;
@@ -101,7 +110,7 @@ const removeFromCart = async (customerId, productId) => {
     const cart = await Cart.findOne({ customer: customerId });
 
     if (!cart) {
-        throw new Error('Cart not found');
+        fail('Cart not found', 404);
     }
 
     const productIndex = cart.products.findIndex(
@@ -109,7 +118,7 @@ const removeFromCart = async (customerId, productId) => {
     );
 
     if (productIndex === -1) {
-        throw new Error('Product not found in cart');
+        fail('Product not found in cart', 404);
     }
 
     cart.products.splice(productIndex, 1);

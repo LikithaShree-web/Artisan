@@ -53,7 +53,7 @@ const placeOrder = async (customerId, deliveryAddress) => {
                 {
                     $inc: { stock: -cartItem.quantity }
                 },
-                { new: true }
+                { returnDocument: 'after' }
             );
 
             if (!updatedProduct) {
@@ -114,7 +114,10 @@ const placeOrder = async (customerId, deliveryAddress) => {
 // 2. Get all orders belonging to a customer
 const getCustomerOrders = async (customerId) => {
     return Order.find({ customer: customerId })
-        .populate('items.product')
+        .populate({
+            path: 'items.product',
+            select: '-productionCost -reviewFeedback -__v'
+        })
         .sort({ createdAt: -1 });
 };
 
@@ -123,7 +126,10 @@ const getCustomerOrderById = async (customerId, orderId) => {
     return Order.findOne({
         _id: orderId,
         customer: customerId
-    }).populate('items.product');
+    }).populate({
+        path: 'items.product',
+        select: '-productionCost -reviewFeedback -__v'
+    });
 };
 
 // 4. Get orders that contain products belonging to an artisan
@@ -143,15 +149,15 @@ const updateArtisanItemStatus = async (
     itemId,
     newStatus
 ) => {
-    const allowedStatuses = [
-        'accepted',
-        'processing',
-        'shipped',
-        'delivered',
-        'cancelled'
-    ];
-
-    if (!allowedStatuses.includes(newStatus)) {
+    const transitions = {
+        placed: ['accepted', 'cancelled'],
+        accepted: ['processing', 'cancelled'],
+        processing: ['shipped', 'cancelled'],
+        shipped: ['delivered'],
+        delivered: [],
+        cancelled: []
+    };
+    if (!Object.hasOwn(transitions, newStatus)) {
         throw new Error('Invalid order status');
     }
 
@@ -171,42 +177,50 @@ const updateArtisanItemStatus = async (
         throw new Error('Order item not found');
     }
 
-    if (item.status === 'delivered' || item.status === 'cancelled') {
-        throw new Error('This order item can no longer be updated');
+    if (!transitions[item.status]?.includes(newStatus)) {
+        throw new Error(`Cannot move an order item from ${item.status} to ${newStatus}`);
     }
 
-    // If an artisan cancels before dispatch, return stock.
-    if (newStatus === 'cancelled') {
-        if (['shipped', 'delivered'].includes(item.status)) {
-            throw new Error('A shipped or delivered item cannot be cancelled');
-        }
+    const updatedOrder = await Order.findOneAndUpdate(
+        {
+            _id: orderId,
+            items: { $elemMatch: { _id: itemId, artisan: artisanId, status: item.status } }
+        },
+        { $set: { 'items.$.status': newStatus } },
+        { returnDocument: 'after' }
+    );
+    if (!updatedOrder) {
+        throw new Error('Order item status changed; reload the order and try again');
+    }
 
-        await Product.findByIdAndUpdate(
+    if (newStatus === 'cancelled') {
+        const restored = await Product.findByIdAndUpdate(
             item.product,
             { $inc: { stock: item.quantity } }
         );
+        if (!restored) {
+            throw new Error('Order was cancelled but product stock could not be restored; contact support');
+        }
     }
 
-    item.status = newStatus;
-
-    const itemStatuses = order.items.map(item => item.status);
+    const itemStatuses = updatedOrder.items.map((orderItem) => orderItem.status);
 
     if (itemStatuses.every(status => status === 'delivered')) {
-        order.status = 'delivered';
+        updatedOrder.status = 'delivered';
     } else if (itemStatuses.every(status => status === 'cancelled')) {
-        order.status = 'cancelled';
+        updatedOrder.status = 'cancelled';
     } else if (itemStatuses.some(status => status === 'shipped')) {
-        order.status = 'shipped';
+        updatedOrder.status = 'shipped';
     } else if (itemStatuses.some(status => status === 'processing')) {
-        order.status = 'processing';
+        updatedOrder.status = 'processing';
     } else if (itemStatuses.some(status => status === 'accepted')) {
-        order.status = 'accepted';
+        updatedOrder.status = 'accepted';
     } else {
-        order.status = 'placed';
+        updatedOrder.status = 'placed';
     }
 
-    await order.save();
-    return order;
+    await updatedOrder.save();
+    return updatedOrder;
 };
 
 module.exports = {

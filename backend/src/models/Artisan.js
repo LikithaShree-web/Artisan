@@ -1,24 +1,33 @@
-const mongoose=require('mongoose');
+const mongoose = require('mongoose');
 
-const data=mongoose.Schema({
-    name:{
-        type:String,
-        required:true
+const data = mongoose.Schema({
+    name: {
+        type: String,
+        required: true,
+        trim: true
     },
-    phone:{
-        type:String,
-        required:true
+    phone: {
+        type: String,
+        required: true,
+        trim: true
     },
-    email:{
-        type:String,
-        required:true
+    email: {
+        type: String,
+        required: true,
+        unique: true,
+        lowercase: true,
+        trim: true
     },
-    password:{
-        type:String,
-        required:true
+    password: {
+        type: String,
+        required: true
+    },
+    role: {
+        type: String,
+        default: 'artisan'
     }
-});
+}, { timestamps: true });
 
-const model=mongoose.model("Artisan",data); 
+const model = mongoose.model('Artisan', data);
 
-module.exports=model;
+module.exports = model;

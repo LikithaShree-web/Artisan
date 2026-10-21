@@ -1,6 +1,8 @@
 import os
 from contextlib import asynccontextmanager
+from pathlib import Path
 
+from dotenv import load_dotenv
 from fastapi import FastAPI, File, HTTPException, UploadFile
 from fastapi.middleware.cors import CORSMiddleware
 from starlette.concurrency import run_in_threadpool
@@ -10,6 +12,8 @@ from app.services.classifier import predict_category
 from app.services.demand import forecast_demand
 from app.services.pricing import recommend_price
 from app.services.preprocessing import preprocess_image
+
+load_dotenv(Path(__file__).resolve().parents[1] / ".env")
 
 
 @asynccontextmanager
@@ -24,11 +28,15 @@ app = FastAPI(
     lifespan=lifespan,
 )
 
-origins = [
-    origin.strip()
-    for origin in os.getenv("AI_ALLOWED_ORIGINS", "http://localhost:5173").split(",")
-    if origin.strip()
-]
+def configured_origins():
+    value = os.getenv(
+        "AI_ALLOWED_ORIGINS",
+        "http://localhost:5173,http://127.0.0.1:5173",
+    )
+    return [origin.strip() for origin in value.split(",") if origin.strip()]
+
+
+origins = configured_origins()
 app.add_middleware(
     CORSMiddleware,
     allow_origins=origins,
