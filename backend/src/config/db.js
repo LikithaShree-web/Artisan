@@ -11,9 +11,10 @@ const data = async () => {
     if (process.env.JWT_SECRET_PASSWORD.length < 32) {
         console.warn('JWT_SECRET_PASSWORD is shorter than the recommended 32 characters; rotate it before production use.');
     }
-    await mongoose.connect(process.env.MONGO_URL);
-    await ensureBootstrapAdmin();
-    console.log('Database connected');
+   await mongoose.connect(process.env.MONGO_URL);
+console.log('Connected database:', mongoose.connection.name);
+await ensureBootstrapAdmin();
+console.log('Database connected');
 };
 
 module.exports = data;

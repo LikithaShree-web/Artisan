@@ -65,8 +65,16 @@ export async function aiRequest(path, { body, ...options } = {}) {
   return data;
 }
 
+
 export function imageUrl(filename) {
   if (!filename) return '';
+
+  // Use Cloudinary or any full image URL directly
+  if (filename.startsWith('http://') || filename.startsWith('https://')) {
+    return filename;
+  }
+
+  // Keep support for older locally stored images
   return `${API_BASE.replace(/\/api\/?$/, '')}/uploads/${encodeURIComponent(filename)}`;
 }
 
